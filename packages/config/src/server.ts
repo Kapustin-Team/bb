@@ -26,6 +26,7 @@ import {
   BB_SERVER_LAUNCH_ID_ENV,
   BB_TELEMETRY_ENV,
   BB_MIGRATION_PREVIEW_ENV,
+  BB_PLUGIN_PREBUILT_ONLY_ENV,
   BB_TRANSCRIPTION_ENV,
   DEFAULT_BB_APP_URL,
   DEFAULT_BB_APP_SURFACE,
@@ -65,6 +66,7 @@ export interface ServerConfig
   BB_SERVER_LAUNCH_ID?: string;
   BB_TELEMETRY: boolean;
   BB_MIGRATION_PREVIEW: boolean;
+  BB_PLUGIN_PREBUILT_ONLY: boolean;
   BB_TRANSCRIPTION: string;
   OPENAI_API_KEY: string;
   featureFlags: FeatureFlags;
@@ -171,6 +173,12 @@ export function loadServerConfig(
       context: loader.context,
       defaultValue: DEFAULT_BB_SERVER_BIND_HOST,
       definition: BB_SERVER_BIND_HOST_ENV,
+      env: loader.env,
+    }),
+    BB_PLUGIN_PREBUILT_ONLY: readEnvVarWithDefault({
+      context: loader.context,
+      defaultValue: false,
+      definition: BB_PLUGIN_PREBUILT_ONLY_ENV,
       env: loader.env,
     }),
     BB_MIGRATION_PREVIEW: readEnvVarWithDefault({

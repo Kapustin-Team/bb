@@ -33,6 +33,7 @@ export interface ServerRuntimeConfig {
   inferenceModel: string;
   isDevelopment: boolean;
   migrationPreview: boolean;
+  pluginPrebuiltOnly: boolean;
   marketplaceUrl: string;
   openAiApiKey: string;
   serverPort: number;

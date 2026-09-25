@@ -245,6 +245,12 @@ export const BB_POSTHOG_API_KEY_ENV = defineEnvVar<string>({
   parse: parseStringEnvValue,
 });
 
+export const BB_PLUGIN_PREBUILT_ONLY_ENV = defineEnvVar<boolean>({
+  description: "Use verified plugin snapshots and existing artifacts without downloading a build toolchain or compiling plugins on this server.",
+  name: "BB_PLUGIN_PREBUILT_ONLY",
+  parse: parseBooleanEnvValue,
+});
+
 export const BB_MIGRATION_PREVIEW_ENV = defineEnvVar<boolean>({
   description: "Load a migration copy without background services, schedules, startup recovery, or automatic catalog refreshes. Not a security sandbox for arbitrary plugin code.",
   name: "BB_MIGRATION_PREVIEW",

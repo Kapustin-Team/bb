@@ -222,6 +222,7 @@ export async function createTestAppHarness(
     inferenceModel: "test/mock-model",
     isDevelopment: true,
     migrationPreview: false,
+    pluginPrebuiltOnly: false,
     openAiApiKey: "test-openai-key",
     serverPort: 3334,
     sharedSkillRoots: { user: [], project: [] },

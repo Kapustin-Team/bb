@@ -155,6 +155,7 @@ export async function runServer(serverConfig: ServerConfig): Promise<void> {
     inferenceModel: serverConfig.BB_INFERENCE,
     isDevelopment: !isProduction,
     migrationPreview: serverConfig.BB_MIGRATION_PREVIEW,
+    pluginPrebuiltOnly: serverConfig.BB_PLUGIN_PREBUILT_ONLY,
     openAiApiKey: serverConfig.OPENAI_API_KEY,
     serverPort: serverConfig.BB_SERVER_PORT,
     sharedSkillRoots: { user: [], project: [] },

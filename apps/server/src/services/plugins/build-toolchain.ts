@@ -8,8 +8,9 @@ import type { PluginServiceDeps } from "./plugin-service-internal.js";
 const byDataDir = new Map<string, Promise<PluginBuildToolchain>>();
 
 export async function getPluginBuildToolchain(
-  args: Pick<PluginServiceDeps, "dataDir" | "logger">,
+  args: Pick<PluginServiceDeps, "dataDir" | "logger" | "prebuiltOnly">,
 ): Promise<PluginBuildToolchain> {
+  if (args.prebuiltOnly) throw new Error("Plugin builds are disabled by BB_PLUGIN_PREBUILT_ONLY; build and verify a new snapshot outside this server.");
   const existing = byDataDir.get(args.dataDir);
   if (existing !== undefined) return existing;
   const pending = resolvePluginBuildToolchain(join(args.dataDir, "plugins"), {

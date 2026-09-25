@@ -1654,3 +1654,6 @@ Use the guarded offline preparation script and its Connect hold before starting
 a copied database. Keep the source BB and its machines unchanged during review.
 Do not turn preview off until credentials, paths, schedules and machine identities
 have been reviewed. See `docs/kapustin-fork.md` for backup and rollback steps.
+
+
+`BB_PLUGIN_PREBUILT_ONLY=true` disables plugin builds and build-toolchain downloads on a deployment server. It defaults to false. Non-builtin plugins must carry `dist/deployment-snapshot.json` with `{ "version": 1, "files": { "package.json": "<sha256>", "...": "<sha256>" } }`, covering their reviewed source and built assets. Every recorded file is checked before loading; changed files fail closed. Host artifact SDK/version/digest checks still apply. Prepare these artifacts outside the production server. Existing source server entries can run using the deployment's compatible runtime dependencies; this setting does not disable plugin execution.

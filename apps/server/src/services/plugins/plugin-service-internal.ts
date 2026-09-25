@@ -57,6 +57,7 @@ export interface PluginHostArtifactSnapshot {
 
 export interface PluginServiceDeps {
   backgroundEnabled?: boolean;
+  prebuiltOnly?: boolean;
   machineEnrollments?: MachineEnrollmentService;
   db: DbConnection;
   sharedPorts?: Pick<

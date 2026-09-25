@@ -631,6 +631,7 @@ export function createApp(
   });
   const pluginService = createPluginService({
     backgroundEnabled: !deps.config.migrationPreview,
+    prebuiltOnly: deps.config.pluginPrebuiltOnly,
     machineEnrollments: getMachineEnrollmentService(deps),
     db: deps.db,
     hub: deps.hub,

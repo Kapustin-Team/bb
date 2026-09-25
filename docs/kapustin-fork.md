@@ -24,3 +24,6 @@ Rollback selects the previous image and its matching untouched data volume. Neve
 ## Build identity
 
 Use `scripts/kapustin-package.sh <output-directory>` from a clean checkout after the relevant tests and typechecks pass. The script builds with Turbo and emits the portable package payload, manifest and SHA-256 sums. Assemble it with Linux runtime dependencies of the matching BB version. Do not run the monorepo build on a shared production server.
+
+
+`BB_PLUGIN_PREBUILT_ONLY=true` disables plugin builds and build-toolchain downloads on a deployment server. It defaults to false. Non-builtin plugins must carry `dist/deployment-snapshot.json` with `{ "version": 1, "files": { "package.json": "<sha256>", "...": "<sha256>" } }`, covering their reviewed source and built assets. Every recorded file is checked before loading; changed files fail closed. Host artifact SDK/version/digest checks still apply. Prepare these artifacts outside the production server. Existing source server entries can run using the deployment's compatible runtime dependencies; this setting does not disable plugin execution.

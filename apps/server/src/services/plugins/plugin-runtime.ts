@@ -36,6 +36,7 @@ import {
   isIgnoredPluginDevPath,
 } from "@bb/plugin-build";
 import { PluginHostArtifactRegistry } from "./plugin-host-artifact-registry.js";
+import { assertPrebuiltPluginSnapshot } from "./prebuilt-plugin-snapshot.js";
 import { getPluginBuildToolchain } from "./build-toolchain.js";
 import { createNodeBbSdk, type BbSdk } from "@bb/sdk";
 import { experimental_aiServicesHostContract } from "@get-bb/plugin-sdk/ai-services";
@@ -1109,7 +1110,7 @@ export function createPluginRuntime(context: PluginRuntimeContext) {
       const sdkChanged = meta?.sdkVersion !== PLUGIN_SDK_VERSION;
       const sourceChanged =
         !sdkChanged && (await isMutableAppBundleStale(row.rootDir));
-      if (sdkChanged || sourceChanged) {
+      if (!deps.prebuiltOnly && (sdkChanged || sourceChanged)) {
         const reason = sdkChanged
           ? `built with SDK ${meta?.sdkVersion ?? "unknown"}, running SDK is ${PLUGIN_SDK_VERSION}`
           : "plugin source is newer than dist/app.js";
@@ -1147,6 +1148,7 @@ export function createPluginRuntime(context: PluginRuntimeContext) {
     if (manifest.hostEntry === undefined) return null;
     const kind = row.sourceKind;
     if (
+      !deps.prebuiltOnly &&
       (kind === "path" || kind === "builtin") &&
       !isPackagedBuiltinEntry({
         kind,
@@ -1410,6 +1412,13 @@ export function createPluginRuntime(context: PluginRuntimeContext) {
         "error",
         error instanceof Error ? error.message : String(error),
       );
+    }
+    if (deps.prebuiltOnly && row.sourceKind !== "builtin") {
+      try {
+        await assertPrebuiltPluginSnapshot(row.rootDir);
+      } catch (error) {
+        return failBeforeFactory("incompatible", error instanceof Error ? error.message : String(error));
+      }
     }
     const engineProblem =
       checkEngineRange(manifest) ?? checkPluginSdkRange(manifest);
