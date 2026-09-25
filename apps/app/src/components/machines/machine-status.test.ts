@@ -1,6 +1,7 @@
 import { makeHost } from "@bb/test-helpers/domain-fixtures";
 import { describe, expect, it } from "vitest";
 import {
+  isMachineShownOnline,
   machinePhaseLabel,
   machineStatusLabel,
   machineStatusTone,
@@ -23,6 +24,22 @@ describe("resuming machine status", () => {
     expect(machineStatusLabel({ host, now: 2 })).toBe(
       "Resuming · Restoring compute",
     );
-    expect(machineStatusTone(host)).toBe("attention");
+    expect(machineStatusTone(host, 2)).toBe("attention");
+  });
+});
+
+describe("disconnected machine display", () => {
+  it("shows a machine offline only once it has been out of contact for 30 seconds", () => {
+    const now = 100_000;
+    const dropped = (lastSeenAt: number | null) =>
+      makeHost({ status: "disconnected", lastSeenAt });
+
+    expect(isMachineShownOnline(dropped(now - 10_000), now)).toBe(true);
+    expect(machineStatusLabel({ host: dropped(now - 10_000), now })).toBe(
+      "Online",
+    );
+    expect(isMachineShownOnline(dropped(now - 31_000), now)).toBe(false);
+    expect(machineStatusTone(dropped(now - 31_000), now)).toBe("offline");
+    expect(isMachineShownOnline(dropped(null), now)).toBe(false);
   });
 });

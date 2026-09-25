@@ -145,7 +145,7 @@ export function MachineRowContent({
               </div>
               <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-subtle-foreground/75">
                 <span className="inline-flex min-w-0 items-center gap-1.5">
-                  <MachineStatusDot tone={machineStatusTone(host)} />
+                  <MachineStatusDot tone={machineStatusTone(host, now)} />
                   <span className="min-w-0 truncate">{connectionLabel}</span>
                 </span>
                 {platformLabel === null ? null : (

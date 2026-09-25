@@ -223,7 +223,7 @@ export function MachineSettingsHeader({
             {showServerBadge ? <SettingsBadge>Server</SettingsBadge> : null}
           </div>
           <div className="flex min-w-0 items-center gap-2">
-            <MachineStatusDot tone={machineStatusTone(host)} />
+            <MachineStatusDot tone={machineStatusTone(host, now)} />
             <p className="min-w-0 text-xs text-subtle-foreground/75">
               {headerMeta({ host, platformLabel, now })}
             </p>

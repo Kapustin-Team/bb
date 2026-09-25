@@ -6,6 +6,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { isMachineShownOnline } from "@/components/machines/machine-status";
 import { nanoid } from "nanoid";
 import { useSystemProviderInfo } from "@/hooks/queries/system-queries";
 import { useImmediateRouteNavigate } from "@/components/ui/app-route-anchor";
@@ -1865,7 +1866,7 @@ function ThreadDetailViewInternal(props: ThreadRoutePathArgs) {
       identity: threadEnvironmentHost
         ? {
             name: threadEnvironmentHost.name,
-            connected: threadEnvironmentHost.status === "connected",
+            connected: isMachineShownOnline(threadEnvironmentHost, Date.now()),
           }
         : removedEnvironmentHostName
           ? {

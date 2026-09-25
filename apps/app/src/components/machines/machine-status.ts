@@ -3,6 +3,16 @@ import { formatRelativeTime } from "@/lib/relative-time";
 
 export type MachineStatusTone = "online" | "attention" | "failed" | "offline";
 
+const MACHINE_OFFLINE_DISPLAY_DELAY_MS = 30_000;
+
+export function isMachineShownOnline(host: Host, now: number): boolean {
+  return (
+    host.status === "connected" ||
+    (host.lastSeenAt !== null &&
+      now - host.lastSeenAt < MACHINE_OFFLINE_DISPLAY_DELAY_MS)
+  );
+}
+
 export function machinePhaseLabel(
   lifecycle: MachineLifecycle,
 ): "Paused" | "Pausing" | "Resuming" | "Removing" | "Cleanup failed" | null {
@@ -19,7 +29,7 @@ export function machinePhaseLabel(
   return null;
 }
 
-export function machineStatusTone(host: Host): MachineStatusTone {
+export function machineStatusTone(host: Host, now: number): MachineStatusTone {
   if (machinePhaseLabel(host.lifecycle) === "Cleanup failed") return "failed";
   if (
     host.lifecycle.phase === "removing" ||
@@ -27,7 +37,7 @@ export function machineStatusTone(host: Host): MachineStatusTone {
     host.lifecycle.phase === "resuming"
   )
     return "attention";
-  return host.status === "connected" ? "online" : "offline";
+  return isMachineShownOnline(host, now) ? "online" : "offline";
 }
 
 export function machineStatusLabel({
@@ -39,9 +49,10 @@ export function machineStatusLabel({
 }): string {
   const parts: string[] = [];
   const phase = machinePhaseLabel(host.lifecycle);
-  parts.push(phase ?? (host.status === "connected" ? "Online" : "Offline"));
+  const shownOnline = isMachineShownOnline(host, now);
+  parts.push(phase ?? (shownOnline ? "Online" : "Offline"));
   if (host.lifecycle.message !== null) parts.push(host.lifecycle.message);
-  else if (host.status !== "connected" && host.lastSeenAt !== null) {
+  else if (!shownOnline && host.lastSeenAt !== null) {
     parts.push(
       `last seen ${formatRelativeTime({ timestamp: host.lastSeenAt, now })}`,
     );
