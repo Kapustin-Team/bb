@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { useMachineOfflineClock } from "@/components/machines/useMachineOfflineClock";
 import { Link, useNavigate } from "react-router-dom";
 import type { Host, PermissionMode } from "@bb/domain";
 import type { SystemMachineProvider } from "@bb/server-contract";
@@ -146,7 +145,7 @@ export function MachineRowContent({
               </div>
               <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-subtle-foreground/75">
                 <span className="inline-flex min-w-0 items-center gap-1.5">
-                  <MachineStatusDot tone={machineStatusTone(host, now)} />
+                  <MachineStatusDot tone={machineStatusTone(host)} />
                   <span className="min-w-0 truncate">{connectionLabel}</span>
                 </span>
                 {platformLabel === null ? null : (
@@ -235,7 +234,7 @@ export function MachinesSettingsSection() {
     return counts;
   }, [projects]);
 
-  const now = useMachineOfflineClock(hosts ?? []);
+  const now = Date.now();
   const primaryHostPlatform = systemConfig.data?.primaryHostPlatform ?? null;
   const persistentHosts = hosts?.filter((host) => host.type === "persistent");
   const sandboxHosts = hosts?.filter((host) => host.type === "ephemeral");

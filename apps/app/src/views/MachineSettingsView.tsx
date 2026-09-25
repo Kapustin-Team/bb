@@ -1,5 +1,4 @@
 import { MachineLifecycleNoticeContent } from "@/components/machines/MachineLifecycleNotice";
-import { useMachineOfflineClock } from "@/components/machines/useMachineOfflineClock";
 import { useMemo, useState, type ComponentProps } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { Host, PermissionMode } from "@bb/domain";
@@ -224,7 +223,7 @@ export function MachineSettingsHeader({
             {showServerBadge ? <SettingsBadge>Server</SettingsBadge> : null}
           </div>
           <div className="flex min-w-0 items-center gap-2">
-            <MachineStatusDot tone={machineStatusTone(host, now)} />
+            <MachineStatusDot tone={machineStatusTone(host)} />
             <p className="min-w-0 text-xs text-subtle-foreground/75">
               {headerMeta({ host, platformLabel, now })}
             </p>
@@ -341,7 +340,7 @@ export function MachineSettingsView() {
     });
   }, [machine?.providerStatus, providerRoster]);
 
-  const now = useMachineOfflineClock(host === null ? [] : [host]);
+  const now = Date.now();
   const platformLabel =
     host !== null &&
     host.id === localDaemonHostId &&
