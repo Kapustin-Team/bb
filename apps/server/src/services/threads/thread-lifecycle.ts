@@ -22,6 +22,7 @@ import {
   getEnvironment,
   getLatestThreadInterruptedReason,
   getThread,
+  listThreadIdsStoppedSinceLastTurnStart,
   listThreadIdsWithLatestHostDaemonRestartInterruption,
   listThreadTurnInterruptionEventStates,
   markThreadStorageDeleted,
@@ -1045,10 +1046,16 @@ export function settleThreadStopCommandResult(
   }
 
   if (!args.report.ok) {
-    if (args.report.errorCode !== "unknown_environment") {
+    if (
+      args.report.errorCode !== "unknown_environment" &&
+      args.report.errorCode !== "host_unavailable"
+    ) {
       return emptyCommandResultSideEffects();
     }
 
+    settleDanglingBackgroundTasksForStoppedThreadInTransaction(args.deps, {
+      threadId: args.command.threadId,
+    });
     finalizeStoppedThreadInTransaction(args.deps, {
       threadId: args.command.threadId,
     });
@@ -2133,7 +2140,7 @@ export async function reconcileDaemonReportedThreads(
   }
 
   const inactiveButActive = deps.db
-    .select({ id: threads.id })
+    .select({ environmentId: environments.id, id: threads.id })
     .from(threads)
     .innerJoin(environments, eq(threads.environmentId, environments.id))
     .where(
@@ -2153,8 +2160,25 @@ export async function reconcileDaemonReportedThreads(
     }),
   );
 
+  const stoppedWhileAwayThreadIds = new Set(
+    listThreadIdsStoppedSinceLastTurnStart(deps.db, {
+      threadIds: inactiveButActive.map((thread) => thread.id),
+    }),
+  );
+
   for (const thread of inactiveButActive) {
     if (blockedRevivalThreadIds.has(thread.id)) {
+      continue;
+    }
+    if (stoppedWhileAwayThreadIds.has(thread.id)) {
+      if (inFlightThreadRpcGuard.claim(thread.id, "thread.stop")) {
+        dispatchThreadStopCommand(deps, {
+          environmentId: thread.environmentId,
+          hostId: args.hostId,
+          interruptionReason: "manual-stop",
+          threadId: thread.id,
+        });
+      }
       continue;
     }
     applyLoggedThreadLifecycleEvent(deps, {
