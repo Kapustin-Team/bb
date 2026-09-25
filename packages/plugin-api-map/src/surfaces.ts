@@ -67,6 +67,19 @@ export const SURFACE_GROUPS: SurfaceGroup[] = [
         experimental: true,
       },
       {
+        id: "pane-lock",
+        title: "Workspace pane locking",
+        summary:
+          "Keeps a workspace pane open while the user navigates other sections.",
+        bullets: [
+          "Lock or unlock the calling pane with experimental_useAppPanel().experimental_setPaneLocked(boolean)",
+          "Returns false outside a desktop workspace pane",
+          "Locks persist with the tab layout and protect closing, replacement, movement; manual resizing remains available",
+        ],
+        apiSymbols: ["ExperimentalAppPanel", "experimental_useAppPanel"],
+        experimental: true,
+      },
+      {
         id: "nav-panel",
         title: "Full-page panels",
         summary:

@@ -5,7 +5,7 @@ import {
   countPanes,
   findPaneByThread,
   MAX_PANES,
-  replacePaneContent,
+  openContentInUnlockedPane,
   setFocus,
   splitPane,
   type PaneContent,
@@ -63,7 +63,7 @@ export function openThreadInSplit({
   const content: PaneContent = { kind: "thread", projectId, threadId };
   const next =
     decision.zone === "center"
-      ? replacePaneContent(layout, layout.focusedPaneId, content)
+      ? openContentInUnlockedPane(layout, content)
       : splitPane(layout, layout.focusedPaneId, "right", content);
   if (next !== layout) {
     store.set(splitLayoutAtom, next);

@@ -2,6 +2,9 @@ import type { ThreadRoutePathArgs } from "@/lib/route-paths";
 import type { ThreadOpenSplit, ThreadPaneAction } from "@bb/server-contract";
 import {
   countPanes,
+  openContentInUnlockedPane,
+  setPaneLocked,
+  canMaximizePane,
   findPane,
   findPaneByContent,
   findPaneByThread,
@@ -121,7 +124,7 @@ export function reconcileLayoutForContent(
       ? withRouteState
       : setFocus(withRouteState, existing.paneId);
   }
-  return replacePaneContent(layout, layout.focusedPaneId, content);
+  return openContentInUnlockedPane(layout, content);
 }
 
 export function focusedPaneRoute(layout: SplitLayout): string | null {
@@ -158,7 +161,7 @@ export function applyThreadOpenToLayout(
   }
   const content = threadPaneContent(thread);
   return decision.zone === "center"
-    ? replacePaneContent(layout, layout.focusedPaneId, content)
+    ? openContentInUnlockedPane(layout, content)
     : splitPane(layout, layout.focusedPaneId, decision.zone, content);
 }
 
@@ -175,7 +178,17 @@ export function applyThreadPaneActionToLayout(
   action: ThreadPaneAction,
 ): ThreadPaneActionLayoutResult {
   const pane = findPaneByThread(layout.root, thread.projectId, thread.threadId);
-  if (pane === null || countPanes(layout.root) < 2) {
+  if (pane === null) {
+    return { layout, maximizedPaneId, dimInactiveSplits: null };
+  }
+  if (action === "lock" || action === "unlock") {
+    return {
+      layout: setPaneLocked(layout, pane.paneId, action === "lock"),
+      maximizedPaneId: null,
+      dimInactiveSplits: null,
+    };
+  }
+  if (countPanes(layout.root) < 2) {
     return { layout, maximizedPaneId, dimInactiveSplits: null };
   }
   if (action === "spotlight" || action === "clear-spotlight") {
@@ -198,6 +211,8 @@ export function applyThreadPaneActionToLayout(
   if (action === "toggle" && maximizedPaneId === pane.paneId) {
     return { layout, maximizedPaneId: null, dimInactiveSplits: null };
   }
+  if (!canMaximizePane(layout, pane.paneId))
+    return { layout, maximizedPaneId: null, dimInactiveSplits: null };
   return {
     layout:
       layout.focusedPaneId === pane.paneId

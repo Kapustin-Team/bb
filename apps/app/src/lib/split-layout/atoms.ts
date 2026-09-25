@@ -6,7 +6,7 @@ import {
   type SyncStorage,
 } from "@/lib/browser-storage";
 import type { ThreadRoutePathArgs } from "@/lib/route-paths";
-import { findPane, listPanes, removePane } from "./ops";
+import { findPane, listPanes, removePane, setPaneLocked } from "./ops";
 import {
   deserializeSplitLayout,
   serializeSplitLayout,
@@ -75,7 +75,10 @@ export const closePanesForThreadsAtom = atom(
       if (pane === undefined) {
         break;
       }
-      const next = removePane(layout, pane.paneId);
+      const next = removePane(
+        setPaneLocked(layout, pane.paneId, false),
+        pane.paneId,
+      );
       if (next === layout) {
         break;
       }
@@ -103,7 +106,10 @@ export const closePanesForThreadsAtom = atom(
             threadId: focused.content.threadId,
           }
         : null;
-    if (survivorRoute === null) {
+    if (
+      survivorRoute === null &&
+      !listPanes(layout.root).some((pane) => pane.locked)
+    ) {
       set(splitLayoutAtom, null);
       set(maximizedPaneIdAtom, null);
       return { removedAny: true, focusedRoute: null };

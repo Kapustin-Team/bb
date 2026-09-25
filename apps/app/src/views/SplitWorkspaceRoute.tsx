@@ -11,6 +11,7 @@ import {
   PLUGIN_DETAIL_ROUTE_PATH,
   PLUGIN_PANEL_ROUTE_PATH,
 } from "@/lib/route-paths";
+import { listPanes } from "@/lib/split-layout";
 import type { PaneContent } from "@/lib/split-layout";
 import { useRouteState } from "@/hooks/useRouteState";
 import { LegacyProjectComposeRedirect } from "./RootComposeView";
@@ -82,7 +83,8 @@ export default function SplitWorkspaceRoute() {
   }
   if (
     routeContent.kind === "plugin-detail" &&
-    !holdsPluginDetailPane(layout, routeContent.pluginId)
+    !holdsPluginDetailPane(layout, routeContent.pluginId) &&
+    !(layout && listPanes(layout.root).some((pane) => pane.locked))
   ) {
     return <PluginsView pluginId={routeContent.pluginId} />;
   }

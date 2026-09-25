@@ -3229,3 +3229,7 @@ remain forbidden. New-machine selections continue through creation.
 
 Stabilization requires lifecycle coverage for reuse, missing paths, cleanup in
 progress, cross-project ownership, and concurrent creation before binding.
+
+## Workspace pane locking
+
+`ExperimentalAppPanel.experimental_setPaneLocked(boolean)` locks the calling workspace pane and returns false outside a desktop pane. State persists in the tab-local split layout. The lock protects closing, replacement and movement; manual resizing and internal plugin navigation remain available. Stabilize after reviewing keyboard, compact viewport, persistence, and all-locked capacity behavior.

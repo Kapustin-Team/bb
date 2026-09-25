@@ -2036,6 +2036,81 @@ describe("SplitThreadArea", () => {
     expect(owners()[0]?.getAttribute("data-testid")).toBe("pane-thr-a");
   });
 
+  it("shows an independent lock in each pane header", async () => {
+    const store = renderSplitArea({
+      path: "/plugins/test-plugin/bottom-right",
+      layout: fourPanePluginLayout(),
+      routeContent: pluginContent("bottom-right"),
+    });
+    const buttons = await screen.findAllByRole("button", { name: "Lock pane" });
+    expect(buttons).toHaveLength(4);
+    for (const button of buttons) {
+      expect(button.closest("header")).not.toBeNull();
+      expect(button.closest("[data-app-page-header-actions]")).not.toBeNull();
+      expect(
+        button
+          .closest("[data-split-pane-id]")
+          ?.getAttribute("data-split-pane-id"),
+      ).toBe(button.getAttribute("data-pane-lock-id"));
+    }
+    const target = buttons.find(
+      (button) => button.getAttribute("data-pane-lock-id") === "pane-top-left",
+    )!;
+    fireEvent.click(target);
+    expect(
+      listPanes(store.get(splitLayoutAtom)!.root)
+        .filter((pane) => pane.locked)
+        .map((pane) => pane.paneId),
+    ).toEqual(["pane-top-left"]);
+    expect(screen.getAllByRole("button", { name: "Lock pane" })).toHaveLength(
+      3,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Unlock pane" }));
+    expect(
+      listPanes(store.get(splitLayoutAtom)!.root).some((pane) => pane.locked),
+    ).toBe(false);
+  });
+
+  it("locks a plugin pane across navigation and prevents its closure and concealment", async () => {
+    const store = renderSplitArea({
+      path: "/plugins/docs/docs",
+      layout: pluginSplitLayout(),
+      routeAwareContent: true,
+      externalTo: threadPath("thr-b"),
+    });
+    const lock = await screen.findByRole("button", { name: "Lock pane" });
+    fireEvent.click(lock);
+    expect(screen.queryByRole("button", { name: "Close pane" })).toBeNull();
+    expect(
+      document
+        .querySelector('[data-split-pane-id="pane-2"]')
+        ?.getAttribute("data-locked"),
+    ).toBe("true");
+    expect(
+      screen.getByRole("separator").getAttribute("aria-disabled"),
+    ).toBeNull();
+    act(() => {
+      commandHandlers.get("pane.close")?.();
+    });
+    expect(listPanes(store.get(splitLayoutAtom)!.root)).toHaveLength(2);
+    fireEvent.click(screen.getByTestId("external-nav"));
+    await screen.findByTestId("pane-thr-b");
+    expect(
+      listPanes(store.get(splitLayoutAtom)!.root).find(
+        (pane) => pane.paneId === "pane-2",
+      )?.content,
+    ).toEqual(docsContent);
+    fireEvent.click(screen.getByTestId("maximize-thr-b"));
+    expect(store.get(maximizedPaneIdAtom)).toBeNull();
+    expect(
+      document
+        .querySelector('[data-split-pane-id="pane-2"]')
+        ?.getAttribute("aria-hidden"),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Unlock pane" }));
+    expect(screen.getByRole("button", { name: "Close pane" })).toBeTruthy();
+  });
+
   it("places plugin header actions before the pane close button", async () => {
     setPluginSlotRegistrations(
       "docs",

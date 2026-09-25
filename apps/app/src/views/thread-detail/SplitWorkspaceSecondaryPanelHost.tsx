@@ -1,3 +1,5 @@
+import { splitLayoutAtom } from "@/lib/split-layout/atoms";
+import { listPanes } from "@/lib/split-layout";
 import {
   useCallback,
   useEffect,
@@ -65,6 +67,10 @@ export function SplitWorkspaceSecondaryPanelHost({
   registry,
 }: SplitWorkspaceSecondaryPanelHostProps) {
   const model = usePaneSecondaryPanelModel(registry, focusedPaneId);
+  const layout = useAtomValue(splitLayoutAtom);
+  const hasLockedPanes =
+    layout !== null && listPanes(layout.root).some((pane) => pane.locked);
+  const isMainCollapsed = Boolean(model?.isMainCollapsed) && !hasLockedPanes;
   const panelGroupRef = useRef<ImperativePanelGroupHandle | null>(null);
   const panelWidthPercent = useAtomValue(secondaryPanelWidthPercentAtom);
   const shortcut = useAppCommandShortcut("panel.toggle");
@@ -117,7 +123,7 @@ export function SplitWorkspaceSecondaryPanelHost({
       group.setLayout([MAIN_PANEL_OPEN_SIZE_PERCENT, 0]);
       return;
     }
-    if (model?.isMainCollapsed) {
+    if (isMainCollapsed) {
       group.setLayout([0, MAIN_PANEL_OPEN_SIZE_PERCENT]);
       return;
     }
@@ -129,7 +135,7 @@ export function SplitWorkspaceSecondaryPanelHost({
     focusedPaneId,
     isOpen,
     isPaneMaximized,
-    model?.isMainCollapsed,
+    isMainCollapsed,
     panelWidthPercent,
   ]);
 
@@ -225,12 +231,12 @@ export function SplitWorkspaceSecondaryPanelHost({
         >
           <Panel
             id="split-workspace-main-panel"
-            collapsible
+            collapsible={!hasLockedPanes}
             collapsedSize={0}
             defaultSize={
               isPaneMaximized
                 ? MAIN_PANEL_OPEN_SIZE_PERCENT
-                : model?.isMainCollapsed
+                : isMainCollapsed
                   ? 0
                   : isOpen
                     ? MAIN_PANEL_OPEN_SIZE_PERCENT - panelWidthPercent

@@ -41,6 +41,7 @@ import {
   CONTEXT_SELECTION_SURFACE_CLASS,
 } from "@/components/ui/context-selection";
 import { usePaneContext } from "./PaneContext";
+import { PaneLockButton } from "./PaneLockButton";
 import { PaneMaximizeButton } from "./PaneMaximizeButton";
 import type { ThreadHeaderGitAction } from "./useThreadGitActions";
 
@@ -273,6 +274,7 @@ export function ThreadDetailHeader({
             </Button>
           </span>
         ) : null}
+        <PaneLockButton />
         <PaneMaximizeButton />
         {onClosePane ? (
           <Button

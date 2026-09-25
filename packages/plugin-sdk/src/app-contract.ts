@@ -2817,6 +2817,8 @@ export type ExperimentalOpenFixedTabOptions<Target extends JsonValue> = {
 
 /** Surface-aware controller for selecting owner-scoped fixed tabs. */
 export interface ExperimentalAppPanel {
+  /** Lock the calling component's workspace pane. Returns false outside a desktop workspace pane. */
+  experimental_setPaneLocked(locked: boolean): boolean;
   openFixedTab<Target extends JsonValue = never>(
     options: ExperimentalOpenFixedTabOptions<Target>,
   ): boolean;

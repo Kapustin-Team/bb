@@ -159,7 +159,15 @@ Settings → Installed plugins or run `bb plugin enable workflows` before using:
   bb workflows status <run-id>
   bb workflows history <run-id> [--cursor <call-index>] [--limit <1-100>]
   bb workflows list [--limit <1-50>]
+  bb workflows checkpoints <run-id> [--cursor <index>] [--limit <1-10>]
+  bb workflows decide <run-id> --checkpoint <id> --decision <approve|reject> [--comment <text>]
   bb workflows stop <run-id>
+
+Workflow scripts can `await human(title, detail)` for an explicit human decision
+and `await check(title, booleanVerdict, detail)` for a recorded pass/fail check.
+The run panel provides approval, revision feedback, and check outcomes. Pending
+reviews survive restart; explicit resume asks for a fresh review. CLI decisions
+must run in the origin thread and relay an explicit user choice.
 
 Commands must run from a BB project thread. Workflows has six plugin
 settings, configurable with `bb plugin config workflows set <key> <value>`:

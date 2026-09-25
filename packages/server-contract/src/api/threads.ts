@@ -702,6 +702,8 @@ export const threadOpenResponseSchema = z.object({
 export type ThreadOpenResponse = z.infer<typeof threadOpenResponseSchema>;
 
 export const threadPaneActionSchema = z.enum([
+  "lock",
+  "unlock",
   "maximize",
   "restore",
   "toggle",

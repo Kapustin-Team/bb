@@ -3,7 +3,7 @@ import {
   countPanes,
   findPaneByContent,
   MAX_PANES,
-  replacePaneContent,
+  openContentInUnlockedPane,
   setFocus,
   splitPane,
   type PaneContent,
@@ -43,7 +43,7 @@ export function openPaneContentInSplit({
     existing !== null
       ? setFocus(layout, existing.paneId)
       : countPanes(layout.root) >= MAX_PANES
-        ? replacePaneContent(layout, layout.focusedPaneId, content)
+        ? openContentInUnlockedPane(layout, content)
         : splitPane(layout, layout.focusedPaneId, "right", content);
   if (next !== layout) store.set(splitLayoutAtom, next);
   void navigate(route, existing !== null ? { replace: true } : undefined);

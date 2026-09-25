@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { cn } from "@bb/shared-ui/lib/utils";
 import {
   PANE_DIRECTION_APP_COMMAND_IDS,
@@ -38,10 +39,13 @@ import {
   computePaneRects,
   countPanes,
   findPane,
+  findPaneByContent,
   listPanes,
   movePane,
   removePane,
-  replacePaneContent,
+  setPaneLocked,
+  canMaximizePane,
+  openContentInUnlockedPane,
   resizeSplit,
   setFocus,
   swapPanes,
@@ -116,6 +120,7 @@ import {
   CONTEXT_INACTIVE_TEXT_CLASS,
   CONTEXT_SELECTION_SURFACE_CLASS,
 } from "@/components/ui/context-selection";
+import { PaneLockButton } from "./PaneLockButton";
 import { PaneMaximizeButton } from "./PaneMaximizeButton";
 import { wsManager } from "@/lib/ws";
 import { PluginDetailOpenerBoundary } from "@/components/plugin/plugin-detail-opener";
@@ -297,10 +302,15 @@ function SplitThreadAreaContent({ routeContent }: SplitThreadAreaProps) {
     if (currentContent === null) {
       return;
     }
-    setLayout((previous) =>
-      reconcileLayoutForContent(previous, currentContent),
-    );
-  }, [currentContent, setLayout]);
+    const previous = store.get(splitLayoutAtom);
+    const next = reconcileLayoutForContent(previous, currentContent);
+    if (next !== previous) setLayout(next);
+    if (findPaneByContent(next.root, currentContent) === null) {
+      toast.info("Unlock a pane before opening another section");
+      const route = focusedPaneRoute(next);
+      if (route !== null) navigate(route, { replace: true });
+    }
+  }, [currentContent, navigate, setLayout, store]);
 
   const layout: SplitLayout | null =
     storedLayout ??
@@ -319,7 +329,8 @@ function SplitThreadAreaContent({ routeContent }: SplitThreadAreaProps) {
     layout !== null &&
     countPanes(layout.root) > 1 &&
     maximizedPaneId !== null &&
-    maximizedPane !== null
+    maximizedPane !== null &&
+    canMaximizePane(layout, maximizedPaneId)
       ? maximizedPaneId
       : null;
   const {
@@ -370,7 +381,8 @@ function SplitThreadAreaContent({ routeContent }: SplitThreadAreaProps) {
     if (
       layout === null ||
       countPanes(layout.root) < 2 ||
-      maximizedPane === null
+      maximizedPane === null ||
+      !canMaximizePane(layout, maximizedPaneId)
     ) {
       setMaximizedPaneId(null);
       return;
@@ -385,7 +397,10 @@ function SplitThreadAreaContent({ routeContent }: SplitThreadAreaProps) {
       setLayout((previous) =>
         previous === null
           ? previous
-          : replacePaneContent(previous, paneId, threadPaneContent(thread)),
+          : openContentInUnlockedPane(
+              setFocus(previous, paneId),
+              threadPaneContent(thread),
+            ),
       );
       navigate(getThreadRoutePath(thread));
     },
@@ -436,7 +451,12 @@ function SplitThreadAreaContent({ routeContent }: SplitThreadAreaProps) {
     (paneId: string) => {
       const current = store.get(splitLayoutAtom);
       const pane = current === null ? null : findPane(current.root, paneId);
-      if (current === null || countPanes(current.root) < 2 || pane === null) {
+      if (
+        current === null ||
+        countPanes(current.root) < 2 ||
+        pane === null ||
+        !canMaximizePane(current, paneId)
+      ) {
         return;
       }
       if (current.focusedPaneId !== paneId) {
@@ -505,7 +525,7 @@ function SplitThreadAreaContent({ routeContent }: SplitThreadAreaProps) {
       if (current === null) {
         return;
       }
-      const next = removePane(current, paneId);
+      const next = removePane(setPaneLocked(current, paneId, false), paneId);
       if (next === current) {
         return;
       }
@@ -526,7 +546,11 @@ function SplitThreadAreaContent({ routeContent }: SplitThreadAreaProps) {
   const beginPaneDrag = useCallback<BeginPaneDrag>(
     (paneId, event, label) => {
       const startLayout = store.get(splitLayoutAtom);
-      if (startLayout === null || countPanes(startLayout.root) < 2) {
+      if (
+        startLayout === null ||
+        countPanes(startLayout.root) < 2 ||
+        findPane(startLayout.root, paneId)?.locked
+      ) {
         return;
       }
       const restoreMaximizeAfterDrag =
@@ -783,6 +807,7 @@ function SplitTree(props: SplitTreeProps) {
         )}
         data-split-pane-id={node.paneId}
         data-focused={isFocused ? "true" : "false"}
+        data-locked={node.locked ? "true" : undefined}
         data-maximized={isMaximized ? "true" : undefined}
       >
         {node.content.kind === "thread" ? (
@@ -799,10 +824,16 @@ function SplitTree(props: SplitTreeProps) {
           isSplitPane
           secondaryPanelRegistry={props.secondaryPanelRegistry}
           reservesWindowPanelToggle={isMaximized || (isTopRow && isRightEdge)}
-          onRequestClose={() => props.onClosePane(node.paneId)}
+          onRequestClose={
+            node.locked ? null : () => props.onClosePane(node.paneId)
+          }
           isMaximized={isMaximized}
           onToggleMaximize={() => props.onToggleMaximizePane(node.paneId)}
-          onMoveToSide={(side) => props.onMovePaneToSide(node.paneId, side)}
+          onMoveToSide={
+            node.locked
+              ? undefined
+              : (side) => props.onMovePaneToSide(node.paneId, side)
+          }
           isBoundedPane
           isTopRow={isMaximized || isTopRow}
           ownsWindowTopLeft={
@@ -1111,6 +1142,7 @@ function NonThreadPaneContent({
           subPath={content.kind === "plugin-panel" ? content.subPath : ""}
         />
       ) : null}
+      <PaneLockButton />
       <PaneMaximizeButton />
       {onRequestClose ? (
         <Button
@@ -1146,51 +1178,56 @@ function NonThreadPaneContent({
         !isBoundedPane && content.kind === "new-thread" && "-m-4 md:-m-5",
       )}
     >
-      {isBoundedPane || panel ? (
+      {isBoundedPane ||
+      panel ||
+      content.kind === "new-thread" ||
+      content.kind === "plugin-detail" ? (
         <AppPageHeader
           isWindowDragRegion={isTopRow}
           ownsWindowTopLeft={ownsWindowTopLeft}
           className={isBoundedPane ? "z-[21]" : undefined}
           center={
-            <div
-              data-pane-header-focus-tab={
-                isBoundedPane && isFocused ? "" : undefined
-              }
-              className={cn(
-                "relative flex min-w-0 flex-1 items-center",
-                isBoundedPane && "-my-1 -ml-2 rounded-md px-2 py-1",
-                isBoundedPane && isFocused && CONTEXT_SELECTION_SURFACE_CLASS,
-                beginPaneDrag &&
-                  cn(
-                    "cursor-grab touch-none select-none",
-                    usesDesktopChrome && MACOS_WINDOW_NO_DRAG_CLASS,
-                  ),
-              )}
-              onPointerDown={beginPaneDrag ? handlePointerDown : undefined}
-            >
-              {automationBreadcrumbs ? (
-                <AppBreadcrumbs
-                  breadcrumbs={automationBreadcrumbs}
-                  usesDesktopChrome={usesDesktopChrome}
-                />
-              ) : panelChrome ? (
-                <PluginPanelHeaderCenter chrome={panelChrome} />
-              ) : (
-                <p
-                  className={cn(
-                    "relative truncate text-sm font-normal transition-colors",
-                    isBoundedPane &&
-                      !isFocused &&
-                      dimsInactiveSplits &&
-                      CONTEXT_INACTIVE_TEXT_CLASS,
-                  )}
-                >
-                  {content.kind === "plugin-detail"
-                    ? "Extension"
-                    : "New thread"}
-                </p>
-              )}
-            </div>
+            <>
+              <div
+                data-pane-header-focus-tab={
+                  isBoundedPane && isFocused ? "" : undefined
+                }
+                className={cn(
+                  "relative flex min-w-0 flex-1 items-center",
+                  isBoundedPane && "-my-1 -ml-2 rounded-md px-2 py-1",
+                  isBoundedPane && isFocused && CONTEXT_SELECTION_SURFACE_CLASS,
+                  beginPaneDrag &&
+                    cn(
+                      "cursor-grab touch-none select-none",
+                      usesDesktopChrome && MACOS_WINDOW_NO_DRAG_CLASS,
+                    ),
+                )}
+                onPointerDown={beginPaneDrag ? handlePointerDown : undefined}
+              >
+                {automationBreadcrumbs ? (
+                  <AppBreadcrumbs
+                    breadcrumbs={automationBreadcrumbs}
+                    usesDesktopChrome={usesDesktopChrome}
+                  />
+                ) : panelChrome ? (
+                  <PluginPanelHeaderCenter chrome={panelChrome} />
+                ) : (
+                  <p
+                    className={cn(
+                      "relative truncate text-sm font-normal transition-colors",
+                      isBoundedPane &&
+                        !isFocused &&
+                        dimsInactiveSplits &&
+                        CONTEXT_INACTIVE_TEXT_CLASS,
+                    )}
+                  >
+                    {content.kind === "plugin-detail"
+                      ? "Extension"
+                      : "New thread"}
+                  </p>
+                )}
+              </div>
+            </>
           }
           actions={actions}
         />

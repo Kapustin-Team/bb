@@ -1571,6 +1571,7 @@ export function renderSlot<
     },
   };
   const appPanel: ExperimentalAppPanel = {
+    experimental_setPaneLocked: () => false,
     openFixedTab(panelOptions) {
       let target: JsonValue | undefined;
       if (panelOptions.target !== undefined) {

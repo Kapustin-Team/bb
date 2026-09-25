@@ -120,6 +120,23 @@ function splitDirection(side: SplitSide): SplitNode["dir"] {
   return side === "left" || side === "right" ? "row" : "col";
 }
 
+function sizesAfterChangingChildren(
+  split: SplitNode,
+  children: LayoutNode[],
+): number[] {
+  const fixedSizes = children.map((child) => {
+    const index = split.children.indexOf(child);
+    return index !== -1 && listPanes(child).some((pane) => pane.locked)
+      ? (split.sizes[index] ?? 0)
+      : null;
+  });
+  const flexibleCount = fixedSizes.filter((size) => size === null).length;
+  const fixedTotal = fixedSizes.reduce<number>((sum, size) => sum + (size ?? 0), 0);
+  if (flexibleCount === 0 || fixedTotal >= 1) return equalSizes(children.length);
+  const flexibleSize = (1 - fixedTotal) / flexibleCount;
+  return fixedSizes.map((size) => size ?? flexibleSize);
+}
+
 function insertPane(
   root: LayoutNode,
   targetPaneId: string,
@@ -150,7 +167,7 @@ function insertPane(
         : directTargetIndex + 1;
     const children = [...root.children];
     children.splice(insertionIndex, 0, pane);
-    return { ...root, children, sizes: equalSizes(children.length) };
+    return { ...root, children, sizes: sizesAfterChangingChildren(root, children) };
   }
 
   const targetChildIndex = root.children.findIndex(
@@ -198,13 +215,50 @@ export function replacePaneContent(
   content: PaneContent,
 ): SplitLayout {
   const pane = findPane(layout.root, paneId);
-  if (pane === null) {
+  if (
+    pane === null ||
+    (pane.locked && findPaneByContent(layout.root, content)?.paneId !== paneId)
+  ) {
     return layout;
   }
   return {
     root: replacePaneNode(layout.root, paneId, { ...pane, content }),
     focusedPaneId: paneId,
   };
+}
+
+export function setPaneLocked(
+  layout: SplitLayout,
+  paneId: string,
+  locked: boolean,
+): SplitLayout {
+  const pane = findPane(layout.root, paneId);
+  if (pane === null || Boolean(pane.locked) === locked) return layout;
+  const { locked: previous, ...unlocked } = pane;
+  return {
+    ...layout,
+    root: replacePaneNode(
+      layout.root,
+      paneId,
+      locked ? { ...pane, locked: true } : unlocked,
+    ),
+  };
+}
+
+export function openContentInUnlockedPane(
+  layout: SplitLayout,
+  content: PaneContent,
+): SplitLayout {
+  const focused = findPane(layout.root, layout.focusedPaneId);
+  if (!focused?.locked)
+    return replacePaneContent(layout, layout.focusedPaneId, content);
+  return splitPane(layout, layout.focusedPaneId, "right", content);
+}
+
+export function canMaximizePane(layout: SplitLayout, paneId: string): boolean {
+  return !listPanes(layout.root).some(
+    (pane) => pane.locked && pane.paneId !== paneId,
+  );
 }
 
 interface DetachResult {
@@ -239,7 +293,7 @@ function detachPane(node: LayoutNode, paneId: string): DetachResult {
         node: {
           ...node,
           children,
-          sizes: equalSizes(children.length),
+          sizes: sizesAfterChangingChildren(node, children),
         },
         detached: result.detached,
       };
@@ -260,7 +314,11 @@ function detachPane(node: LayoutNode, paneId: string): DetachResult {
 export function removePane(layout: SplitLayout, paneId: string): SplitLayout {
   const panesBefore = listPanes(layout.root);
   const removedIndex = panesBefore.findIndex((pane) => pane.paneId === paneId);
-  if (panesBefore.length === 1 || removedIndex === -1) {
+  if (
+    panesBefore.length === 1 ||
+    removedIndex === -1 ||
+    panesBefore[removedIndex]?.locked
+  ) {
     return layout;
   }
   const result = detachPane(layout.root, paneId);
@@ -288,6 +346,8 @@ export function movePane(
   if (
     paneId === targetPaneId ||
     findPane(layout.root, paneId) === null ||
+    findPane(layout.root, paneId)?.locked ||
+    findPane(layout.root, targetPaneId)?.locked ||
     findPane(layout.root, targetPaneId) === null
   ) {
     return layout;
@@ -312,7 +372,12 @@ export function swapPanes(
   }
   const pane = findPane(layout.root, paneId);
   const targetPane = findPane(layout.root, targetPaneId);
-  if (pane === null || targetPane === null) {
+  if (
+    pane === null ||
+    targetPane === null ||
+    pane.locked ||
+    targetPane.locked
+  ) {
     return layout;
   }
   const withFirstSwap = replacePaneNode(layout.root, paneId, {

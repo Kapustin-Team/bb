@@ -1,3 +1,8 @@
+import { useStore } from "jotai";
+import { useOptionalPaneContext } from "@/views/thread-detail/PaneContext";
+import { useSplitWorkspaceActive } from "@/hooks/useSplitWorkspaceActive";
+import { splitLayoutAtom, maximizedPaneIdAtom } from "./split-layout/atoms";
+import { findPane, setPaneLocked } from "./split-layout";
 import {
   removePluginMention,
   subscribeComposerSubmitted,
@@ -445,6 +450,27 @@ export function useBbNavigate(): BbNavigate {
 }
 
 function useExperimentalAppPanel(): ExperimentalAppPanel {
+  const store = useStore();
+  const pane = useOptionalPaneContext();
+  const active = useSplitWorkspaceActive();
+  const paneId = pane?.paneId;
+  const experimental_setPaneLocked = useCallback(
+    (locked: boolean) => {
+      const layout = store.get(splitLayoutAtom);
+      if (
+        typeof locked !== "boolean" ||
+        !active ||
+        !paneId ||
+        layout === null ||
+        !findPane(layout.root, paneId)
+      )
+        return false;
+      store.set(splitLayoutAtom, setPaneLocked(layout, paneId, locked));
+      store.set(maximizedPaneIdAtom, null);
+      return true;
+    },
+    [active, paneId, store],
+  );
   const pluginId = usePluginId();
   const appNavigation = useAppNavigationHost();
   const openFixedTab = useCallback<ExperimentalAppPanel["openFixedTab"]>(
@@ -467,7 +493,10 @@ function useExperimentalAppPanel(): ExperimentalAppPanel {
     },
     [appNavigation, pluginId],
   );
-  return useMemo(() => ({ openFixedTab }), [openFixedTab]);
+  return useMemo(
+    () => ({ openFixedTab, experimental_setPaneLocked }),
+    [openFixedTab, experimental_setPaneLocked],
+  );
 }
 
 function useExperimentalFixedTabTarget<Target extends JsonValue>(
