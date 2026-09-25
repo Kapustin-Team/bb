@@ -60,6 +60,7 @@ function createCountingLogger(): CountingLogger {
 
 function createRuntimeConfig(): ServerRuntimeConfig {
   return {
+    migrationPreview: false,
     appUrl: "https://ambient-app.example.test",
     appVersion: "0.0.0-test",
     builtinSkillsRootPath: "/tmp/bb-test/builtin-skills",

@@ -1642,3 +1642,15 @@ The Thread list plugin's `threadLifecycles` preference selects `["active"]`
 (the default), `["archived"]`, or `["active","archived"]`. Set it with
 `bb thread-list prefs set threadLifecycles '["archived"]'` or the header's
 Filter menu. It syncs to every window and rejects empty or duplicate values.
+
+## Kapustin migration rehearsal
+
+`BB_MIGRATION_PREVIEW=true bb-app --data-dir <isolated-copy>` loads the UI and
+plugin data while holding registered plugin background services, scheduled jobs,
+startup/periodic recovery, provider catalog prewarming and automatic marketplace
+refreshes. Default is false. This fork-only server setting is parsed as a boolean.
+It is not a sandbox for arbitrary plugin factory code or user-triggered actions.
+Use the guarded offline preparation script and its Connect hold before starting
+a copied database. Keep the source BB and its machines unchanged during review.
+Do not turn preview off until credentials, paths, schedules and machine identities
+have been reviewed. See `docs/kapustin-fork.md` for backup and rollback steps.

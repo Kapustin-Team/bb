@@ -98,6 +98,56 @@ describe("plugin background services", () => {
     await rm(workDir, { recursive: true, force: true });
   });
 
+  it("keeps restored plugins available without starting services or claiming schedules", async () => {
+    await service.stop();
+    service = createPluginService({
+      aiServices: createAiServiceRegistry(),
+      telemetry: createNoopTelemetryService(),
+      db,
+      hub: {
+        getDaemonSessionIdForHost: () => null,
+        notifyPluginSignal: () => 0,
+        notifySystem: () => {},
+      },
+      logger,
+      dataDir: join(workDir, "data"),
+      appVersion: "0.9.0",
+      backgroundEnabled: false,
+    });
+    globals.__previewRuns = 0;
+    try {
+      const rootDir = await writePlugin(workDir, {
+        name: "bb-plugin-preview-fixture",
+        serverSource: `
+          export default function plugin(bb: any) {
+            bb.background.service("sync", {
+              async start() { (globalThis as any).__previewRuns += 1; },
+            });
+            bb.background.schedule("tick", "* * * * *", async () => {
+              (globalThis as any).__previewRuns += 1;
+            });
+          }
+        `,
+      });
+      await service.installPath(rootDir);
+      await service.reload("preview-fixture");
+      const past = Date.now() - 60_000;
+      setNextRunAt(db, "preview-fixture", "tick", past);
+      service.setSchedulesPaused(false);
+      await service.sweepDueSchedules(Date.now());
+      expect(globals.__previewRuns).toBe(0);
+      expect(getInstalledPlugin(db, "preview-fixture")?.enabled).toBe(true);
+      expect(service.getApi("preview-fixture")).toBeDefined();
+      expect(service.list().find((p) => p.id === "preview-fixture")).toMatchObject({
+        status: "running",
+        services: [{ name: "sync", state: "stopped" }],
+      });
+      expect(listPluginSchedules(db, "preview-fixture")[0]?.nextRunAt).toBe(past);
+    } finally {
+      delete globals.__previewRuns;
+    }
+  });
+
   it("starts services after load and aborts them on reload", async () => {
     const rootDir = await writePlugin(workDir, {
       name: "bb-plugin-connector",

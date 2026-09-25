@@ -630,6 +630,7 @@ export function createApp(
     return next();
   });
   const pluginService = createPluginService({
+    backgroundEnabled: !deps.config.migrationPreview,
     machineEnrollments: getMachineEnrollmentService(deps),
     db: deps.db,
     hub: deps.hub,

@@ -804,3 +804,13 @@ describe("provider model config", () => {
     }
   });
 });
+
+
+describe("migration preview configuration", () => {
+  it("requires an explicit boolean and defaults to normal operation", () => {
+    expect(loadServerConfig({ env: createServerRuntimeEnv() }).BB_MIGRATION_PREVIEW).toBe(false);
+    expect(loadServerConfig({ env: createServerRuntimeEnv({ BB_MIGRATION_PREVIEW: "true" }) }).BB_MIGRATION_PREVIEW).toBe(true);
+    expect(loadServerConfig({ env: createServerRuntimeEnv({ BB_MIGRATION_PREVIEW: "false" }) }).BB_MIGRATION_PREVIEW).toBe(false);
+    expect(() => loadServerConfig({ env: createServerRuntimeEnv({ BB_MIGRATION_PREVIEW: "oops" }) })).toThrow();
+  });
+});

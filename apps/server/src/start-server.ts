@@ -69,6 +69,7 @@ export function startHttpListener(args: StartHttpListenerArgs) {
 }
 
 export interface StartServerPluginsArgs {
+  backgroundEnabled?: boolean;
   dataDir: string;
   logger: Pick<ServerLogger, "error" | "warn">;
   pluginService: Pick<PluginService, "start" | "startPeriodicUpdateChecks">;
@@ -87,7 +88,9 @@ export function startServerPlugins(
     })
     .finally(() => {
       args.providerRegistry.markRegistrationsSettled();
-      args.pluginService.startPeriodicUpdateChecks();
+      if (args.backgroundEnabled !== false) {
+        args.pluginService.startPeriodicUpdateChecks();
+      }
     });
 }
 
@@ -151,6 +154,7 @@ export async function runServer(serverConfig: ServerConfig): Promise<void> {
     inferenceFallbackModel: serverConfig.BB_INFERENCE_FALLBACK,
     inferenceModel: serverConfig.BB_INFERENCE,
     isDevelopment: !isProduction,
+    migrationPreview: serverConfig.BB_MIGRATION_PREVIEW,
     openAiApiKey: serverConfig.OPENAI_API_KEY,
     serverPort: serverConfig.BB_SERVER_PORT,
     sharedSkillRoots: { user: [], project: [] },
@@ -224,7 +228,7 @@ export async function runServer(serverConfig: ServerConfig): Promise<void> {
     telemetry,
     terminalSessions,
   });
-  pendingInteractions.start();
+  if (!serverConfig.BB_MIGRATION_PREVIEW) pendingInteractions.start();
   setPluginToolCallRegistry(new PluginToolCallRegistry({ logger }));
 
   const appVersion = createAppVersionService({
@@ -302,10 +306,10 @@ export async function runServer(serverConfig: ServerConfig): Promise<void> {
     terminalSessions,
   };
   const providerModelCatalogPrewarm =
-    pendingServerMove === null
+    pendingServerMove === null && !serverConfig.BB_MIGRATION_PREVIEW
       ? installProviderModelCatalogPrewarm(sweepDeps)
       : null;
-  if (pendingServerMove === null) {
+  if (pendingServerMove === null && !serverConfig.BB_MIGRATION_PREVIEW) {
     await runStartupRecoverySweep(sweepDeps).catch((error) => {
       logger.error({ err: error }, "Startup recovery sweep failed");
     });
@@ -346,6 +350,7 @@ export async function runServer(serverConfig: ServerConfig): Promise<void> {
       providerRegistry.markRegistrationsSettled();
     } else {
       void startServerPlugins({
+        backgroundEnabled: !serverConfig.BB_MIGRATION_PREVIEW,
         dataDir: serverConfig.BB_DATA_DIR,
         logger,
         pluginService,
@@ -354,13 +359,15 @@ export async function runServer(serverConfig: ServerConfig): Promise<void> {
         void serverMove.handlePluginsStarted();
       });
     }
-    pluginCatalogService.startPeriodicRefresh();
-    sweepInterval = setInterval(() => {
-      if (!isServerMoveFrozen(db)) {
-        void runPeriodicSweeps(sweepDeps);
-      }
-    }, 10_000);
-    sweepInterval.unref();
+    if (!serverConfig.BB_MIGRATION_PREVIEW) {
+      pluginCatalogService.startPeriodicRefresh();
+      sweepInterval = setInterval(() => {
+        if (!isServerMoveFrozen(db)) {
+          void runPeriodicSweeps(sweepDeps);
+        }
+      }, 10_000);
+      sweepInterval.unref();
+    }
   } else {
     logger.info(
       { moveId: pendingServerMove.moveId },

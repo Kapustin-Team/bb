@@ -427,3 +427,15 @@ Progress and failures appear in the thread's provisioning details. If cloning
 fails, the machine remains available for retry or explicit removal.
 `--new-machine <id>` requires an explicit `--environment-provider <id>`; machine
 providers do not implicitly choose an environment.
+
+## Kapustin migration rehearsal
+
+`BB_MIGRATION_PREVIEW=true bb-app --data-dir <isolated-copy>` loads the UI and
+plugin data while holding registered plugin background services, scheduled jobs,
+startup/periodic recovery, provider catalog prewarming and automatic marketplace
+refreshes. Default is false. This fork-only server setting is parsed as a boolean.
+It is not a sandbox for arbitrary plugin factory code or user-triggered actions.
+Use the guarded offline preparation script and its Connect hold before starting
+a copied database. Keep the source BB and its machines unchanged during review.
+Do not turn preview off until credentials, paths, schedules and machine identities
+have been reviewed. See `docs/kapustin-fork.md` for backup and rollback steps.

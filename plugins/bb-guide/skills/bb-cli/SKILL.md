@@ -175,3 +175,15 @@ and no open terminals; empty machines can use an opted-in provider idle policy.
 suspended state through the provider and waits for completion. It leaves active
 machines and in-progress lifecycle operations alone. Use `machine suspend` to
 request a new pause. Core does not schedule reconciliation polling.
+
+## Kapustin migration rehearsal
+
+`BB_MIGRATION_PREVIEW=true bb-app --data-dir <isolated-copy>` loads the UI and
+plugin data while holding registered plugin background services, scheduled jobs,
+startup/periodic recovery, provider catalog prewarming and automatic marketplace
+refreshes. Default is false. This fork-only server setting is parsed as a boolean.
+It is not a sandbox for arbitrary plugin factory code or user-triggered actions.
+Use the guarded offline preparation script and its Connect hold before starting
+a copied database. Keep the source BB and its machines unchanged during review.
+Do not turn preview off until credentials, paths, schedules and machine identities
+have been reviewed. See `docs/kapustin-fork.md` for backup and rollback steps.

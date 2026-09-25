@@ -245,6 +245,12 @@ export const BB_POSTHOG_API_KEY_ENV = defineEnvVar<string>({
   parse: parseStringEnvValue,
 });
 
+export const BB_MIGRATION_PREVIEW_ENV = defineEnvVar<boolean>({
+  description: "Load a migration copy without background services, schedules, startup recovery, or automatic catalog refreshes. Not a security sandbox for arbitrary plugin code.",
+  name: "BB_MIGRATION_PREVIEW",
+  parse: parseBooleanEnvValue,
+});
+
 export const BB_TELEMETRY_ENV = defineEnvVar<boolean>({
   description:
     "Anonymous usage telemetry (app starts, thread creation counts, user message counts, and plugin installs). Set to false to opt out.",

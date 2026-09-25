@@ -32,6 +32,7 @@ export interface ServerRuntimeConfig {
   inferenceFallbackModel: string;
   inferenceModel: string;
   isDevelopment: boolean;
+  migrationPreview: boolean;
   marketplaceUrl: string;
   openAiApiKey: string;
   serverPort: number;

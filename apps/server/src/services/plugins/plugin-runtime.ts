@@ -470,6 +470,7 @@ export function createPluginRuntime(context: PluginRuntimeContext) {
   const serviceContext = new AsyncLocalStorage<ServiceInstance>();
 
   function runService(id: string, service: ServiceRuntime): void {
+    if (deps.backgroundEnabled === false) return;
     const controller = new AbortController();
     service.controller = controller;
     service.state = "running";

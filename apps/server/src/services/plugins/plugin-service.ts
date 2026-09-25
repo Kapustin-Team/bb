@@ -2413,7 +2413,7 @@ export function createPluginService(deps: PluginServiceDeps): PluginService {
     },
 
     async sweepDueSchedules(now) {
-      if (schedulesPaused || loaded.size === 0) return;
+      if (deps.backgroundEnabled === false || schedulesPaused || loaded.size === 0) return;
       const due = listDuePluginSchedules(deps.db, {
         now,
         limit: SCHEDULE_SWEEP_BATCH_SIZE,
