@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useMachineOfflineClock } from "@/components/machines/useMachineOfflineClock";
 import { Link, useNavigate } from "react-router-dom";
 import type { Host, PermissionMode } from "@bb/domain";
 import type { SystemMachineProvider } from "@bb/server-contract";
@@ -234,7 +235,7 @@ export function MachinesSettingsSection() {
     return counts;
   }, [projects]);
 
-  const now = Date.now();
+  const now = useMachineOfflineClock(hosts ?? []);
   const primaryHostPlatform = systemConfig.data?.primaryHostPlatform ?? null;
   const persistentHosts = hosts?.filter((host) => host.type === "persistent");
   const sandboxHosts = hosts?.filter((host) => host.type === "ephemeral");

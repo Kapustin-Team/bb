@@ -2,6 +2,7 @@ import { makeHost } from "@bb/test-helpers/domain-fixtures";
 import { describe, expect, it } from "vitest";
 import {
   isMachineShownOnline,
+  nextMachineOfflineDisplayAt,
   machinePhaseLabel,
   machineStatusLabel,
   machineStatusTone,
@@ -41,5 +42,40 @@ describe("disconnected machine display", () => {
     expect(isMachineShownOnline(dropped(now - 31_000), now)).toBe(false);
     expect(machineStatusTone(dropped(now - 31_000), now)).toBe("offline");
     expect(isMachineShownOnline(dropped(null), now)).toBe(false);
+  });
+});
+
+describe("next machine offline display time", () => {
+  it("returns when the earliest recently dropped machine should show offline", () => {
+    const now = 100_000;
+    expect(
+      nextMachineOfflineDisplayAt(
+        [
+          makeHost({ id: "connected", status: "connected", lastSeenAt: now }),
+          makeHost({
+            id: "later",
+            status: "disconnected",
+            lastSeenAt: now - 5_000,
+          }),
+          makeHost({
+            id: "sooner",
+            status: "disconnected",
+            lastSeenAt: now - 20_000,
+          }),
+          makeHost({
+            id: "long-gone",
+            status: "disconnected",
+            lastSeenAt: now - 60_000,
+          }),
+        ],
+        now,
+      ),
+    ).toBe(now - 20_000 + 30_000);
+    expect(
+      nextMachineOfflineDisplayAt(
+        [makeHost({ status: "disconnected", lastSeenAt: now - 60_000 })],
+        now,
+      ),
+    ).toBeNull();
   });
 });

@@ -29,6 +29,21 @@ export function machinePhaseLabel(
   return null;
 }
 
+export function nextMachineOfflineDisplayAt(
+  hosts: readonly Host[],
+  now: number,
+): number | null {
+  let next: number | null = null;
+  for (const host of hosts) {
+    if (host.status === "connected" || host.lastSeenAt === null) continue;
+    const offlineAt = host.lastSeenAt + MACHINE_OFFLINE_DISPLAY_DELAY_MS;
+    if (offlineAt > now && (next === null || offlineAt < next)) {
+      next = offlineAt;
+    }
+  }
+  return next;
+}
+
 export function machineStatusTone(host: Host, now: number): MachineStatusTone {
   if (machinePhaseLabel(host.lifecycle) === "Cleanup failed") return "failed";
   if (

@@ -6,6 +6,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useMachineOfflineClock } from "@/components/machines/useMachineOfflineClock";
 import { isMachineShownOnline } from "@/components/machines/machine-status";
 import { nanoid } from "nanoid";
 import { useSystemProviderInfo } from "@/hooks/queries/system-queries";
@@ -931,6 +932,12 @@ function ThreadDetailViewInternal(props: ThreadRoutePathArgs) {
   )
     ? resolvedThreadEnvironmentHost
     : null;
+  const hostDisplayNow = useMachineOfflineClock(
+    threadEnvironmentHost ? [threadEnvironmentHost] : [],
+  );
+  const threadEnvironmentHostShownOnline =
+    threadEnvironmentHost !== null &&
+    isMachineShownOnline(threadEnvironmentHost, hostDisplayNow);
   const hostConnectionNotice = useMemo(
     () =>
       thread
@@ -1866,7 +1873,7 @@ function ThreadDetailViewInternal(props: ThreadRoutePathArgs) {
       identity: threadEnvironmentHost
         ? {
             name: threadEnvironmentHost.name,
-            connected: isMachineShownOnline(threadEnvironmentHost, Date.now()),
+            connected: threadEnvironmentHostShownOnline,
           }
         : removedEnvironmentHostName
           ? {
@@ -1877,6 +1884,7 @@ function ThreadDetailViewInternal(props: ThreadRoutePathArgs) {
     }),
     [
       removedEnvironmentHostName,
+      threadEnvironmentHostShownOnline,
       threadEnvironmentIsLocal,
       threadEnvironmentHost,
     ],

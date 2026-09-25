@@ -1,4 +1,5 @@
 import { MachineLifecycleNoticeContent } from "@/components/machines/MachineLifecycleNotice";
+import { useMachineOfflineClock } from "@/components/machines/useMachineOfflineClock";
 import { useMemo, useState, type ComponentProps } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import type { Host, PermissionMode } from "@bb/domain";
@@ -340,7 +341,7 @@ export function MachineSettingsView() {
     });
   }, [machine?.providerStatus, providerRoster]);
 
-  const now = Date.now();
+  const now = useMachineOfflineClock(host === null ? [] : [host]);
   const platformLabel =
     host !== null &&
     host.id === localDaemonHostId &&
