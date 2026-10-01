@@ -1,0 +1,43 @@
+name: BB multi runtime
+on:
+  push:
+    branches: [multi/0.44.0-foundation]
+  workflow_dispatch:
+permissions:
+  contents: read
+  packages: write
+concurrency:
+  group: multi-runtime-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec turbo run build --filter=bb-app --output-logs=errors-only
+        env:
+          NODE_OPTIONS: --max-old-space-size=5120
+      - run: |
+          mkdir -p /tmp/bb-multi-runtime
+          pnpm --filter bb-app pack --pack-destination /tmp/bb-multi-runtime
+          cp /tmp/bb-multi-runtime/bb-app-*.tgz deploy/multi/bb-app.tgz
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: deploy/multi
+          push: true
+          tags: ghcr.io/kapustin-team/bb-multi-runtime:${{ github.sha }}
+          build-args: BB_REVISION=${{ github.sha }}
